@@ -55,8 +55,8 @@ public class Main : MonoBehaviour {
 
         //     async UniTask PingHost(CancellationToken cancellationToken) {
         //         while (!cancellationToken.IsCancellationRequested) {
-        //             peer.SendData(Encoding.UTF8.GetBytes("Hello there"));
         //             await UniTask.Delay(TimeSpan.FromSeconds(10), cancellationToken: cancellationToken);
+        //             peer.SendData(Encoding.UTF8.GetBytes("Hello there"));
         //         }
         //     }
         // }
