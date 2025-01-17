@@ -1,3 +1,8 @@
+using System;
+using System.Text;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Multiplayer;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,12 +14,52 @@ public class Main : MonoBehaviour {
 
     Player player;
 
+    CancellationTokenSource multiplayerCTS = new();
+    Client client;
+    Host host;
+    GamePeer peer;
+
     float previousMousePosition;
 
     void Awake() {
+        SetupMultiplayer();
         player = InstantiatePlayer();
         InstantiateReflection();
         return;
+
+        void SetupMultiplayer() {
+            host = new(port: 1410);
+            var peer = new Peer();
+            peer.OnDataReceived += HandleDataReceived;
+            host.Run(peer, multiplayerCTS.Token).Forget();
+            this.peer = peer;
+
+            void HandleDataReceived(byte[] data) {
+                var encoding = Encoding.UTF8;
+                Debug.Log($"Received data: {encoding.GetString(data)}");
+                peer.SendData(encoding.GetBytes("General Kenobi"));
+            }
+        }
+
+        // void SetupMultiplayer() {
+        //     client = new(ip: "127.0.0.1", port: 1410);
+        //     var peer = new Peer();
+        //     peer.OnDataReceived += HandleDataReceived;
+        //     client.Run(peer, multiplayerCTS.Token).Forget();
+        //     this.peer = peer;
+        //     PingHost(multiplayerCTS.Token).Forget();
+
+        //     void HandleDataReceived(byte[] data) {
+        //         Debug.Log($"Received data: {Encoding.UTF8.GetString(data)}");
+        //     }
+
+        //     async UniTask PingHost(CancellationToken cancellationToken) {
+        //         while (!cancellationToken.IsCancellationRequested) {
+        //             peer.SendData(Encoding.UTF8.GetBytes("Hello there"));
+        //             await UniTask.Delay(TimeSpan.FromSeconds(10), cancellationToken: cancellationToken);
+        //         }
+        //     }
+        // }
 
         Player InstantiatePlayer()
             => Instantiate(playerPrefab, GetRandomPosition(), rotation: Quaternion.identity);
@@ -45,6 +90,7 @@ public class Main : MonoBehaviour {
 
         void CheckInput() {
             if (Input.GetKeyDown(KeyCode.Escape)) {
+                multiplayerCTS.Cancel();
 #if UNITY_EDITOR
                 EditorApplication.ExitPlaymode();
 #endif
