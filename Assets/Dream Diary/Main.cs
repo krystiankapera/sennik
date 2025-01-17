@@ -76,7 +76,7 @@ public class Main : MonoBehaviour {
         }
 
         float GetRandomOffset()
-            => Random.value - 0.5f;
+            => UnityEngine.Random.value - 0.5f;
     }
 
     void Start() {
