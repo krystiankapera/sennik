@@ -65,7 +65,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 20
+  far clip plane: 100
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -105,7 +105,6 @@ GameObject:
   - component: {fileID: 6356108227128464746}
   - component: {fileID: 8348006062850446363}
   - component: {fileID: 6606839649417705500}
-  - component: {fileID: 8222183242502842109}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -142,8 +141,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 284f1f1d912dc6cf9b830ee011977475, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enteredTrigger: {fileID: 0}
   characterController: {fileID: 6356108227128464746}
+  modelRoot: {fileID: 1728318742683653265}
 --- !u!143 &6356108227128464746
 CharacterController:
   m_ObjectHideFlags: 0
@@ -293,14 +292,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!81 &8222183242502842109
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8567395905099937362}
-  m_Enabled: 1
 --- !u!1001 &521710293920356065
 PrefabInstance:
   m_ObjectHideFlags: 0
