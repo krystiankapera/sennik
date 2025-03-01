@@ -2,12 +2,13 @@ using UnityEngine;
 
 public class Player : MonoBehaviour {
     [SerializeField] CharacterController characterController;
-    [SerializeField] Transform modelRoot;
+    [SerializeField] Transform visualsRoot;
 
     Transform mTransform;
 
     public Vector3 Position => mTransform.position;
     public Vector3 Forward => mTransform.forward;
+    public Quaternion Rotation => mTransform.rotation;
 
     void Awake() {
         mTransform = transform;
@@ -16,7 +17,7 @@ public class Player : MonoBehaviour {
     public void Move(float diff, Vector2 moveDirection) {
         var motion = (mTransform.forward * moveDirection.y + mTransform.right * moveDirection.x) * diff;
         characterController.Move(motion);
-        modelRoot.LookAt(mTransform.position + motion);
+        visualsRoot.LookAt(mTransform.position + motion);
     }
 
     public void Rotate(float diff) {
