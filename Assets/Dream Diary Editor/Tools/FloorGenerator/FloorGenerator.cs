@@ -20,10 +20,10 @@ namespace Editor.Tools.FloorGenerator {
         Quaternion horizontalWallRotation;
         Quaternion verticalWallRotation;
 
-        List<Rect> horizontalWallConstraints = new();
-        List<Rect> verticalWallConstraints = new();
-        List<Rect> portalConstraints = new();
-        List<Rect> obstacleConstraints = new();
+        readonly List<Rect> horizontalWallConstraints = new();
+        readonly List<Rect> verticalWallConstraints = new();
+        readonly List<Rect> portalConstraints = new();
+        readonly List<Rect> obstacleConstraints = new();
 
         [MenuItem("Sennik/" + nameof(FloorGenerator))]
         public static void ShowSelf()

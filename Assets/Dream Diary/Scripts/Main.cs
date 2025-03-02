@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Multiplayer;
+using Runtime.Ads;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,6 +12,7 @@ namespace Runtime.Gameplay {
         [SerializeField] Reflection reflectionPrefab;
         [SerializeField] GameObject victoryPopup;
         [SerializeField] Vector2 boardSize;
+        [SerializeField] AdController adController;
 
         Player player;
         Reflection reflection;
@@ -25,6 +27,8 @@ namespace Runtime.Gameplay {
             player = InstantiatePlayer();
             reflection = InstantiateReflection();
             reflection.OnPlayerCollision += ShowVictoryPopup;
+
+            adController.AddShowCondition(new PlayerDistanceTravelledShowAdCondition(player, 10f));
             return;
 
             void SetupMultiplayer() {
@@ -87,13 +91,13 @@ namespace Runtime.Gameplay {
                     moveDirection += Vector2.right;
 
                 if (moveDirection.magnitude > 0)
-                    player.Move(Config.MOVEMENT * Time.deltaTime, moveDirection.normalized);
+                    player.Move(GameplaySettings.Instance.MovementSpeed * Time.deltaTime, moveDirection.normalized);
 
                 if (Input.GetMouseButton(0)) {
                     var input = Input.GetAxis("Mouse X");
 
                     if (!Mathf.Approximately(input, 0f))
-                        player.Rotate(input * 2f);
+                        player.Rotate(input * GameplaySettings.Instance.Sensitivity);
                 }
             }
         }

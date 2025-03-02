@@ -1,34 +1,25 @@
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Runtime.Gameplay;
 using UnityEditor;
 using UnityEngine;
 
 namespace Editor.Tools.MapValidator {
     public class MapValidator : EditorWindow {
-        float playerHeight;
-        float playerRadius;
-        float checkPrecision;
-        ValidationResult lastValidationResult = ValidationResult.Pending;
+        float playerHeight = 1f;
+        float playerRadius = 0.3f;
+        float checkPrecision = 0.1f;
 
-        private GUIStyle validLabelStyle;
-        private GUIStyle invalidLabelStyle;
+        ValidationResult validationResult = ValidationResult.None;
+        GUIStyle validLabelStyle;
+        GUIStyle invalidLabelStyle;
+        GUIStyle pendingLabelStyle;
+        bool stylesSetUp;
 
         [MenuItem("Sennik/" + nameof(MapValidator))]
         public static void ShowSelf()
             => GetWindow<MapValidator>(nameof(MapValidator)).Show();
-
-        private void OnEnable() {
-            validLabelStyle = new GUIStyle(EditorStyles.label) {
-                fontSize = 24,
-                normal = { textColor = Color.green }
-            };
-
-            invalidLabelStyle = new GUIStyle(EditorStyles.label) {
-                fontSize = 24,
-                normal = { textColor = Color.red }
-            };
-        }
 
         void OnGUI() {
             playerHeight = EditorGUILayout.FloatField(label: nameof(playerHeight), playerHeight);
@@ -38,27 +29,27 @@ namespace Editor.Tools.MapValidator {
             if (checkPrecision <= 0)
                 checkPrecision = 0.1f;
 
-            if (GUILayout.Button("Validate"))
+            if (GUILayout.Button("Validate") && validationResult != ValidationResult.Pending)
                 Validate();
 
-            if (lastValidationResult != ValidationResult.Pending)
+            if (validationResult != ValidationResult.None)
                 ShowValidationMessage();
         }
 
-        void ShowValidationMessage() {
-            var style = lastValidationResult == ValidationResult.Valid ? validLabelStyle : invalidLabelStyle;
-            GUILayout.Label(new StringBuilder().Append("Validation Result: ").Append(lastValidationResult.ToString()).ToString(), style);
+        async void ValidateAsync() {
+            validationResult = ValidationResult.Pending;
+            await Task.Run(() => Validate());
         }
 
         void Validate() {
             var allColliders = FindObjectsOfType<Collider>(false);
             List<Collider> obstacleColliders = new();
-            List<Collider> portalColliders = new();
+            List<Collider> portalTriggers = new();
             List<Portal> portals = new();
-            Bounds bounds = new Bounds();
+            Bounds mapBounds = new();
 
             foreach (var collider in allColliders) {
-                bounds.Encapsulate(collider.bounds);
+                mapBounds.Encapsulate(collider.bounds);
 
                 if (collider.bounds.max.y <= 0.01f || collider.bounds.min.y > playerHeight)
                     continue;
@@ -68,7 +59,7 @@ namespace Editor.Tools.MapValidator {
 
                     if (portal) {
                         portals.Add(portal);
-                        portalColliders.Add(collider);
+                        portalTriggers.Add(collider);
                     }
 
                     continue;
@@ -77,44 +68,48 @@ namespace Editor.Tools.MapValidator {
                 obstacleColliders.Add(collider);
             }
 
-            var xGridSize = Mathf.CeilToInt((bounds.max.x - bounds.min.x) / checkPrecision);
-            var yGridSize = Mathf.CeilToInt((bounds.max.z - bounds.min.z) / checkPrecision);
+            var mapGrid = CreateGrid(mapBounds);
 
-            var walkableAreas = new bool[xGridSize][];
+            foreach (var obstacle in obstacleColliders)
+                AddObstacleToGrid(obstacle, mapGrid, mapBounds);
 
-            for (int i = 0; i < xGridSize; i++) {
-                walkableAreas[i] = new bool[yGridSize];
-                for (int j = 0; j < yGridSize; j++) {
-                    walkableAreas[i][j] = true;
-                }
-            }
+            foreach (var portalCollider in portalTriggers)
+                AddPortalToGrid(portalCollider, mapGrid, mapBounds);
 
-            foreach (var obstacle in obstacleColliders) {
-                AddObstacleToGrid(obstacle, walkableAreas, bounds);
-            }
-
-            foreach (var portalCollider in portalColliders) {
-                AddPortalToGrid(portalCollider, walkableAreas, bounds);
-            }
-
-            var walkableTiles = GetAllWalkableTiles(walkableAreas);
+            var walkableTiles = GetAllWalkableTiles(mapGrid);
 
             if (walkableTiles.Count == 0) {
-                lastValidationResult = ValidationResult.Invalid;
+                validationResult = ValidationResult.Invalid;
                 Debug.LogWarning("MAP INVALID");
                 return;
             }
 
-            var portalConnections = GetPortalConnectedTiles(portals, bounds);
-            var cluster = FloodFill(walkableTiles, portalConnections);
+            var portalConnections = GetPortalConnectedTiles(portals, mapBounds);
+            var clusteredTiles = FloodFill(walkableTiles, portalConnections);
 
-            if (cluster.Count == walkableTiles.Count) {
-                lastValidationResult = ValidationResult.Valid;
+            if (clusteredTiles.Count == walkableTiles.Count) {
+                validationResult = ValidationResult.Valid;
                 Debug.LogWarning("MAP VALID");
             } else {
-                lastValidationResult = ValidationResult.Invalid;
+                validationResult = ValidationResult.Invalid;
                 Debug.LogWarning("MAP INVALID");
             }
+        }
+
+        bool[][] CreateGrid(Bounds bounds) {
+            var xGridSize = Mathf.CeilToInt((bounds.max.x - bounds.min.x) / checkPrecision);
+            var yGridSize = Mathf.CeilToInt((bounds.max.z - bounds.min.z) / checkPrecision);
+
+            var grid = new bool[xGridSize][];
+
+            for (int i = 0; i < xGridSize; i++) {
+                grid[i] = new bool[yGridSize];
+                for (int j = 0; j < yGridSize; j++) {
+                    grid[i][j] = true;
+                }
+            }
+
+            return grid;
         }
 
         void AddObstacleToGrid(Collider obstacle, bool[][] walkableAreas, Bounds bounds) {
@@ -209,14 +204,65 @@ namespace Editor.Tools.MapValidator {
             return visited;
         }
 
-        private Vector2Int GetRandomTile(HashSet<Vector2Int> tiles) {
+        Vector2Int GetRandomTile(HashSet<Vector2Int> tiles) {
             foreach (var tile in tiles)
                 return tile;
 
             return Vector2Int.zero;
         }
 
+        void ShowValidationMessage() {
+            GUILayout.Label(GetValidationMessage(), GetLabelStyle(validationResult));
+        }
+
+        string GetValidationMessage() {
+            if (validationResult == ValidationResult.Pending)
+                return "Validation in progress...";
+
+            return new StringBuilder().Append("Validation Result: ").Append(validationResult.ToString()).ToString();
+        }
+
+        GUIStyle GetLabelStyle(ValidationResult result) {
+            if (!stylesSetUp)
+                SetupLabelStyles();
+
+            switch (result) {
+                case ValidationResult.None:
+                    break;
+                case ValidationResult.Pending:
+                    return pendingLabelStyle;
+                case ValidationResult.Valid:
+                    return validLabelStyle;
+                case ValidationResult.Invalid:
+                    return invalidLabelStyle;
+                default:
+                    break;
+            }
+
+            return GUIStyle.none;
+        }
+
+        void SetupLabelStyles() {
+            pendingLabelStyle = new GUIStyle(EditorStyles.label) {
+                fontSize = 24,
+                normal = { textColor = Color.white }
+            };
+
+            validLabelStyle = new GUIStyle(EditorStyles.label) {
+                fontSize = 24,
+                normal = { textColor = Color.green }
+            };
+
+            invalidLabelStyle = new GUIStyle(EditorStyles.label) {
+                fontSize = 24,
+                normal = { textColor = Color.red }
+            };
+
+            stylesSetUp = true;
+        }
+
         private enum ValidationResult {
+            None,
             Pending,
             Valid,
             Invalid
