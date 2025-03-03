@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -35,8 +34,12 @@ namespace Multiplayer {
             return;
 
             void SendData(byte[] data) {
-                foreach (var stream in activeStreams)
+                foreach (var stream in activeStreams) {
+                    if (stream == null)
+                        continue;
+
                     stream.WriteAsync(data);
+                }
             }
 
             async UniTask HandleClient() {

@@ -4,6 +4,8 @@ using UnityEngine;
 namespace Runtime.Gameplay {
     [RequireComponent(typeof(Animator))]
     public class PlayerAnimatorController : MonoBehaviour {
+        const string VELOCITY_KEY = "velocity";
+
         Transform mTransform;
         Animator animator;
         Vector3 lastPosition;
@@ -16,23 +18,20 @@ namespace Runtime.Gameplay {
         }
 
         void Update() {
-            // TODO przemyslec czy potrzeba tych sampli ORAZ zmienic na input a nie velocity
             var delta = (mTransform.position - lastPosition).magnitude;
             var velocity = delta / Time.deltaTime;
             velocitySamples.Add(new VelocitySample { Time = Time.time, Velocity = velocity });
 
-            for (int i = velocitySamples.Count - 1; i >= 0; i--) {
-                if (Time.time > velocitySamples[i].Time + 0.15f) {
+            for (int i = velocitySamples.Count - 1; i >= 0; i--)
+                if (Time.time > velocitySamples[i].Time + 0.15f)
                     velocitySamples.RemoveAt(i);
-                }
-            }
 
             var avgVelocity = 0f;
-            foreach (var sample in velocitySamples) {
-                avgVelocity += sample.Velocity / velocitySamples.Count;
-            }
 
-            animator.SetFloat("velocity", avgVelocity);
+            foreach (var sample in velocitySamples)
+                avgVelocity += sample.Velocity / velocitySamples.Count;
+
+            animator.SetFloat(VELOCITY_KEY, avgVelocity);
             lastPosition = mTransform.position;
         }
 

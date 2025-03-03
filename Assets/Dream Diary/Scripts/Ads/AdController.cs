@@ -29,8 +29,12 @@ namespace Runtime.Ads {
         }
 
         async void CloseAdAfterDelay() {
-            cts = new CancellationTokenSource();
+            cts = new CancellationTokenSource(); 
             await UniTask.Delay((int)(duration * 1000), cancellationToken: cts.Token).SuppressCancellationThrow();
+
+            if (cts.IsCancellationRequested)
+                return;
+
             CloseAd();
         }
 

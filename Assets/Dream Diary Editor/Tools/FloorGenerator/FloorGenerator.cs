@@ -15,6 +15,7 @@ namespace Editor.Tools.FloorGenerator {
         int obstaclesCount;
 
         Transform parent;
+        Rect mapBounds;
         float wallElementLength;
         float wallElementThickness;
         Quaternion horizontalWallRotation;
@@ -43,7 +44,7 @@ namespace Editor.Tools.FloorGenerator {
         void Generate() {
             parent = new GameObject("Generated Map").transform;
 
-            // TODO parent each type of map element into a new GO for easy enable/disable
+            SetupMapBounds();
             GenerateFloor();
             InitializeWallProperties();
             GenerateOuterWalls();
@@ -53,11 +54,18 @@ namespace Editor.Tools.FloorGenerator {
             ClearConstraints();
         }
 
+        void SetupMapBounds() {
+            var minX = -config.FloorPrefabSize.x / 2f * generatedSize;
+            var minY = -config.FloorPrefabSize.y / 2f * generatedSize;
+            mapBounds = new Rect(minX, minY, config.FloorPrefabSize.x * generatedSize, config.FloorPrefabSize.y * generatedSize);
+        }
+
         void GenerateFloor() {
             var offset = new Vector2(
-                -config.FloorPrefabSize.x / 2 * generatedSize,
-                -config.FloorPrefabSize.y / 2 * generatedSize
+                mapBounds.min.x,
+                mapBounds.min.y
             );
+
             for (var x = 0; x < generatedSize; x++)
                 for (var y = 0; y < generatedSize; y++) {
                     var position = new Vector3(
@@ -83,15 +91,16 @@ namespace Editor.Tools.FloorGenerator {
         }
 
         void GenerateOuterWalls() {
-            var minX = -config.FloorPrefabSize.x / 2f * generatedSize;
-            var maxX = config.FloorPrefabSize.x / 2f * generatedSize;
-            var minY = -config.FloorPrefabSize.y / 2f * generatedSize;
-            var maxY = config.FloorPrefabSize.y / 2f * generatedSize;
+            var minX = mapBounds.min.x;
+            var maxX = mapBounds.max.x;
+            var minY = mapBounds.min.y;
+            var maxY = mapBounds.max.y;
             GenerateHorizontalWall(minY, minX, maxX);
             GenerateHorizontalWall(maxY, minX, maxX);
             GenerateVerticalWall(minX, minY, maxY);
             GenerateVerticalWall(maxX, minY, maxY);
         }
+
         void GeneratePortals() {
             List<Portal> createdPortals = new ();
 
@@ -144,8 +153,8 @@ namespace Editor.Tools.FloorGenerator {
         }
 
         Portal GeneratePortal() {
-            var minX = -config.FloorPrefabSize.x / 2 * generatedSize;
-            var maxX = config.FloorPrefabSize.x / 2 * generatedSize;
+            var minX = mapBounds.min.x;
+            var maxX = mapBounds.max.y;
             var rotate = Random.value > 0.5;
             var portalSizeX = rotate ? config.PortalPrefabSize.y : config.PortalPrefabSize.x;
             var portalSizeY = rotate ? config.PortalPrefabSize.x : config.PortalPrefabSize.y;
@@ -175,16 +184,10 @@ namespace Editor.Tools.FloorGenerator {
         }
 
         bool GenerateRandomWall() {
-            // TODO perhaps move these as class properties
-            var minX = -config.FloorPrefabSize.x / 2f * generatedSize;
-            var maxX = config.FloorPrefabSize.x / 2f * generatedSize;
-            var minY = -config.FloorPrefabSize.y / 2f * generatedSize;
-            var maxY = config.FloorPrefabSize.y / 2f * generatedSize;
-
             var vertical = Random.value > 0.5f;
 
             if (vertical) {
-                var randomX = Random.Range(minX, maxX);
+                var randomX = Random.Range(mapBounds.min.x, mapBounds.max.x);
                 var yRange = GetAvailableYRangeForVerticalWall(randomX - wallElementLength / 2f, randomX + wallElementLength / 2f, wallElementThickness);
                 if (yRange == Vector2.zero)
                     return false;
@@ -193,7 +196,7 @@ namespace Editor.Tools.FloorGenerator {
                 var randomStart = Random.Range(yRange.x, yRange.y - randomLength);
                 GenerateVerticalWall(randomX, randomStart, randomStart + randomLength);
             } else {
-                var randomY = Random.Range(minY, maxY);
+                var randomY = Random.Range(mapBounds.min.y, mapBounds.max.y);
                 var xRange = GetAvailableXRangeForHorizontalWall(randomY - wallElementLength / 2f, randomY + wallElementLength / 2f, wallElementThickness);
                 if (xRange == Vector2.zero)
                     return false;

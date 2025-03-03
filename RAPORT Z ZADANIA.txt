@@ -1,0 +1,130 @@
+﻿Czołem!
+
+Niniejszym melduję, że zadanie wykonane. Oto więc przesyłam ten wspaniały
+
+RAPORT Z ZADANIA
+
+Wstępne informacje:
+* Podstawowe prace oraz dwa dodatkowe zadania poszły zbyt szybko, więc zbuntowałem się i zrobiłem wszystkie zadania. 
+* Próbowałem dostosować się do zasad formatowania i nazewnictwa kodu, mam nadzieję, że wyszło.
+* Pomimo lekkiego refaktoru, starałem się nie usuwać totalnie klas istniejących już w projekcie - nawet, jeżeli moim zdaniem dałoby się zmienić ich zakres odpowiedzialności.
+
+
+Prace obowiązkowe:
+
+
+1. Portale:
+* Portale nie działały, ponieważ w tej samej klatce co teleportacja wykonywaliśmy CharacterController.Move(), co nadpisywało pozycję.
+* Łatwym fixem byłaby zmiana kolejności wywołania CheckPortals() i CheckInput(), ale wolałem zrobić to porządnie.
+* Odpowiedzialność za kontrole teleportacji została przeniesiona do klasy Portal.
+* Player udostępnia funkcję Teleport(), która dba o to, żeby wywołanie w tej samej klatce Move() nie nadpisywało pozycji przy teleportacji.
+* Poprawiłem też kalkulację pozycji docelowej, bo istniejąca w projekcie była błędna, jeśli portal wejściowy i wyjściowy nie miały identycznej globalnej rotacji.
+
+2. Ekran wygranej:
+* Dodałem ekran.
+* Przyciski działają i są duże.
+* Używam pięknej, ukradzionej z internetu grafiki jako placeholdera dla tła.
+* Zadbałem o anchoring w RectTransform żeby się ładnie skalowały.
+* Dodałem skrypty do przycisków, bo w końcu jakoś tam powinny działać.
+* Odpowiedzialność za Restart/Wyjście z gry trafiła do klasy Main, skoro ta klasa i tak kontrolowała już wyjście z gry oraz inicjalizację rozgrywki.
+
+3. Generator mapy:
+* Rozszerzyłem narzędzie FloorGenerator, aby umieszczał:
+      * Ściany na krawędziach i wewnątrz mapy,
+      * Portale,
+      * Losowe przeszkody.
+* Utworzyłem MapGeneratorConfig, aby referencje do prefabów oraz informacji o nich były dostępne w jednym miejscu - oraz żeby nie trzeba było wpinać ich na
+  nowo przy każdym otworzeniu okna z narzędziem.
+* Generator dba o to, aby umieszczane na mapie elementy nie nachodziły na siebie (z wyjątkiem przecinających się pod kątem 90 stopni ścian).
+* Dodatkowo, w configu można ustawić minimalny zasięg wolnego miejsca wokół portali (żeby nic nie blokowało przejścia) oraz minimalną szerokość korytarzy między 
+  ścianami biegnącymi w tym samym kierunku - dzięki czemu łatwiej generować bardziej estetyczne plansze o dużym zagęszczeniu obiektów, które wciąż przechodzą 
+  walidację (o walidatorze później, w pracach dodatkowych).
+* Dla map 100x100, polecam następujące parametry:
+      * 2-10 portali
+      * 50-100 ścian
+      * 150-300 przeszkód
+
+4. System poruszania się:
+* Prędkość poruszania się była zależna od ilości klatek, dodałem mnożenie przez Time.deltaTime żeby temu zapobiec.
+* Dodałem bazową obsługę chodzenia w innych kierunkach, tak o, dla wygody.
+* Dostosowałem input, aby bardziej przypominał sterowanie, do którego przyzwyczajeni są gracze:
+* Chodzenie zostało przeniesione na klawisze WSAD, zamiast działać na wciśnięcie dowolnego klawisza.
+* Obracanie kamery wymaga teraz wciśnięcia przycisku myszki.
+* Pozbyłem się klasy Config, a prędkość poruszania się gracza trafiła do folderu “Persistent Data Path” w formie JSONa, aby dało się ją konfigurować spoza 
+  skompilowanego kodu, wg wytycznych. 
+      * Wolałem tak niż poprzez user-friendly UI, bo w ten sposób zrobiłem inną pracę i po co się powtarzać.
+
+
+Prace dodatkowe:
+
+
+1. Animacje chodzenia
+* Dodałem prosty animator wraz ze skryptem do niego, do obsługi chodzenia przy różnej prędkości gracza.
+* Skrypt wylicza średnią prędkość gracza (bazując na faktycznym przesunięciu, nie na inpucie - widać różnicę probując “wejść w ściany”) na podstawie ostatnich 0.15 s
+  dla większej płynności animacji na początku i na końcu ruchu.
+* Mamy też animację w której figurka się nudzi, gdy gracz nie porusza się zbyt długo, bo była taka w projekcie i pomyślałem sobie że fajna.
+
+
+2. Menu Główne
+* Dodałem nową scenę na menu główne. Zawiera ona całość potrzebnego wg wytycznych UI oraz skrypty do kontroli nawigacji.
+* Powstała również statyczna klasa NetworkSettings do przetrzymywania danych o podanym IP oraz porcie pomiędzy scenami.
+* Powinno skalować się ładnie na różnych rozdzielczościach.
+* Dbam o osoby z problemami ze wzrokiem i przyciski są duże.
+
+
+3. Ekran ustawień
+* Ponieważ robiłem już fullscreenowe okienka w ramach zadania, to żeby nie było nudno, tym razem nie zrobiłem “ekranu”, tylko panel wewnątrz gameplayu.
+* Dodałem przyciski do otwarcia/zamknięcia panelu podczas gry.
+* Ustawienia czułości myszy/głośności można zmieniać poprzez suwaki.
+* Zabezpieczyłem funkcję sprawdzającą input, aby przesuwanie suwaków nie powodowało obrotu kamery.
+* Wszystkie ustawienia są zapisywane w PlayerPrefs i w ten sposób zapamiętywane pomiędzy sesjami.
+* Wartości są aplikowane poprzez odpowiednie skrypty i zmiany czułości myszy oraz głośności muzyki są natychmiast widoczne/słyszalne/wyczuwalne w grze.
+
+4. Reklama
+* Długo zachwycałem się dostarczoną grafiką reklamową.
+* Utworzyłem panel do wyświetlania reklam w gameplayu, któremu przekazuję osobny skrypt, sprawdzający warunek wyświetlenia.
+* Skrypt sprawdzający warunek bazuje na faktycznym przesunięciu gracza w dowolnym kierunku (czyli pokonany przez gracza dystans zwiększa biegając w kółko, 
+  ale nie biegnąc w przeszkodę)
+
+5. Kamera
+* Widoczność gracza jest już ograniczona ze względu na przeszkody generowane przez generator, dlatego zwiększyłem far plane, bez obaw, że gracz wciąż ma 
+  wyzwanie próbując odnaleźć swoje odbicie.
+* Dodatkowo dodałem efekt mgły. Gęstej mgły. Lubię gęstą mgłę (tak, jestem z Krakowa).
+
+6. Multiplayer
+* Wykorzystałem jeden prosty trik polegający na odkomentowaniu kodu wewnątrz klasy Main, więc dowiedziałem się, że komunkacja pomiędzy hostem i klientem 
+  już działa.
+* Dodałem funkcje do serializacji i deserializacji danych w Utils, abym wysyłając informacje pomiędzy graczami mógł wygodnie pobierać dane z obiektów.
+* Wg specyfikacji, dodałem obsługę synchronizacji pozycji pomiędzy graczami - każdy gracz wysyła w funkcji asynchronicznej pozycję swojego Playera, a gracz 
+  odbierający aplikuje ją do Reflection.
+* Zadbałem o odpowiednią reprezentację rotacji oraz animacji drugiego gracza.
+* W momencie podpięcia się klienta do gry, wysyła on komunikat, a w odpowiedzi na niego host zwraca do klienta pozycje Playera oraz Reflection, tak, aby klient 
+  mógł zaaplikować u siebie stan gry, jaki jest u hosta.
+* Jeśli gracze się spotkają i oboje zobaczą ekran wygranej, synchronizacja pozycji sprawi, że pozycje, które każdy z nich wylosuje dla swojej postaci zostaną 
+  wysłane i zaaplikowane po sieci - więc uznałem, że na potrzeby zadania nie potrzebuję bawić się w specjalną obsługę restartu gry.
+
+7. Walidacja planszy
+* Stworzyłem nowe narzędzie EditorWindow, dostępne pod Sennik -> MapValidator
+* Narzędzie przyjmuje następujące parametry:
+      * Wysokość postaci gracza - aby nie sprawdzać przeszkód, które są za wysoko, aby gracz kiedykolwiek w nie wszedł.
+      * Radius postaci gracza - żeby wiedzieć, czy gracz zmieści się pomiedzy obiektami na mapie
+      * Wartość wpływająca na precyzję walidacji - im mniejsza wartość, tym bardziej precyzyjny wynik.
+* Walidacja następuje na podstawie obecnie otwartej w edytorze sceny - mapa nie musi koniecznie być wygenerowana, walidator sprawdzi również te ustawione ręcznie.
+* Walidator zakłada, że gracz porusza się tylko w płaszczyźnie poziomej na wysokości 0.
+* Mapa jest uważana za poprawną, gdy wszystkie obszary (o podstawie szerokości i długości równej współczynnikowi precyzji) po których może poruszać się gracz 
+  (czyli takie, które są w całości oddalone od przeszkód na mapie o co najmniej radius gracza) są ze sobą połączone.
+* Połączenia pomiędzy portalami są uwzględniane podczas przeszukiwania połączeń pomiędzy obszarami.
+* Zdarza się, że walidator sprawdzając poprawną mapę, uzna ją za niepoprawną (ale nigdy odwrotnie) - może to być spowodowane zbyt wysokim podanym współczynnikiem 
+  precyzji. Dla mapy 100x100, warto używać precyzji 0.1 - 0.15.
+
+
+8. Prace dodatkowe w ramach programu ORMO
+* Ponieważ na mapie znajdują się wysokie przeszkody, istniała sytuacja, w której ustawienie kamery w stałej odległosci za postacią gracza powodowało, że kamera 
+  pozycjonowała się za ścianą względem postaci. Ponieważ mnie to drażniło, dodałem skrypt do kamery, który skraca dystans do gracza w przypadku natrafienia na ściany.
+* Pozbyłem się błędów wypisywanych w konsoli co klatkę, spowodowanych zduplikowanym AudioListenerem na scenie.
+* Postanowiłem dodać proste namespaces oraz przeorganizować strukturę folderów w projekcie, aby łatwiej dało się odnaleźć pliki tego samego typu.
+
+
+
+Życzę powodzenia przy sprawdzaniu! Wybaczcie długość sprawozdania - mam nadzieję, że więcej ono wyjaśnia, niż przeszkadza w tej formie.
+Krystian Kapera

@@ -1,10 +1,9 @@
-using System.Text;
 using System.Threading;
-using Cysharp.Threading.Tasks;
 using Multiplayer;
 using Runtime.Ads;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Runtime.Gameplay {
     public class Main : MonoBehaviour {
@@ -16,54 +15,22 @@ namespace Runtime.Gameplay {
 
         Player player;
         Reflection reflection;
-
         CancellationTokenSource multiplayerCTS = new();
-        Client client;
-        Host host;
-        GamePeer peer;
 
         void Awake() {
-            SetupMultiplayer();
             player = InstantiatePlayer();
             reflection = InstantiateReflection();
             reflection.OnPlayerCollision += ShowVictoryPopup;
-
             adController.AddShowCondition(new PlayerDistanceTravelledShowAdCondition(player, 10f));
+            SetupMultiplayer();
             return;
 
             void SetupMultiplayer() {
-                host = new(port: 1410);
-                var peer = new Peer();
-                peer.OnDataReceived += HandleDataReceived;
-                host.Run(peer, multiplayerCTS.Token).Forget();
-                this.peer = peer;
-
-                void HandleDataReceived(byte[] data) {
-                    var encoding = Encoding.UTF8;
-                    Debug.Log($"Received data: {encoding.GetString(data)}");
-                    peer.SendData(encoding.GetBytes("General Kenobi"));
-                }
+                if (NetworkSettings.Mode == NetworkGameMode.Host)
+                    new HostHandler(player, reflection, multiplayerCTS.Token).Initialize();
+                else if (NetworkSettings.Mode == NetworkGameMode.Client)
+                    new ClientHandler(player, reflection, multiplayerCTS.Token).Initialize();
             }
-
-            // void SetupMultiplayer() {
-            //     client = new(ip: "127.0.0.1", port: 1410);
-            //     var peer = new Peer();
-            //     peer.OnDataReceived += HandleDataReceived;
-            //     client.Run(peer, multiplayerCTS.Token).Forget();
-            //     this.peer = peer;
-            //     PingHost(multiplayerCTS.Token).Forget();
-
-            //     void HandleDataReceived(byte[] data) {
-            //         Debug.Log($"Received data: {Encoding.UTF8.GetString(data)}");
-            //     }
-
-            //     async UniTask PingHost(CancellationToken cancellationToken) {
-            //         while (!cancellationToken.IsCancellationRequested) {
-            //             await UniTask.Delay(TimeSpan.FromSeconds(10), cancellationToken: cancellationToken);
-            //             peer.SendData(Encoding.UTF8.GetBytes("Hello there"));
-            //         }
-            //     }
-            // }
 
             Player InstantiatePlayer()
                 => Instantiate(playerPrefab, GetRandomPosition(), rotation: Quaternion.identity);
@@ -93,11 +60,15 @@ namespace Runtime.Gameplay {
                 if (moveDirection.magnitude > 0)
                     player.Move(GameplaySettings.Instance.MovementSpeed * Time.deltaTime, moveDirection.normalized);
 
-                if (Input.GetMouseButton(0)) {
+                if (Input.GetMouseButton(0) && !IsPointerOverUI()) {
                     var input = Input.GetAxis("Mouse X");
 
                     if (!Mathf.Approximately(input, 0f))
                         player.Rotate(input * GameplaySettings.Instance.Sensitivity);
+                }
+
+                bool IsPointerOverUI() {
+                    return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
                 }
             }
         }
@@ -120,9 +91,6 @@ namespace Runtime.Gameplay {
 
         float GetRandomOffset()
             => UnityEngine.Random.value - 0.5f;
-
-        float GetMousePosition()
-            => Input.mousePosition.x;
 
         public void Restart() {
             player.transform.position = GetRandomPosition();
